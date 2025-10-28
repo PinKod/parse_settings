@@ -22,8 +22,14 @@ VALGRIND_OPTS := --leak-check=full --show-leak-kinds=all --track-origins=yes \
 # Helgrind options
 HELGRIND_OPTS := --log-file=helgrind-out.txt --error-exitcode=1
 
-# Perf options
-PERF_OPTS := stat -e cycles,instructions,cache-references,cache-misses,branches,branch-misses
+# Perf options for 'perf stat'
+PERF_STAT_OPTS := stat -e cycles,instructions,cache-references,cache-misses,branches,branch-misses
+
+# Perf options for 'perf record' (for flame graphs)
+PERF_RECORD_OPTS := record -F 99 -g --call-graph dwarf
+
+# FlameGraph tools path (YOU MUST ADJUST THIS TO WHERE YOU CLONED FlameGraph)
+FLAMEGRAPH_DIR := $(HOME)/FlameGraph
 
 # Code formatting
 IGNORE_DIRS := -path ./build -o -path ./cmake-build-debug -o -path ./bin
@@ -55,6 +61,19 @@ build_release:
 	@echo "┗=========================================┛"
 	$(MKDIR_P) $(BUILD_DIR)
 	cmake -B $(BUILD_DIR) -S . -DCMAKE_BUILD_TYPE=Release
+	cmake --build $(BUILD_DIR)
+	@echo "✓ Build complete: $(BUILD_DIR)/src/parser/parser"
+
+# NEW TARGET FOR PROFILING: Release mode with debug symbols
+.PHONY: build_perf
+build_perf:
+	@echo "┏=========================================┓"
+	@echo "┃   BUILDING FOR PERFORMANCE ANALYSIS     ┃"
+	@echo "┃ (Release build with debug symbols)      ┃"
+	@echo "┗=========================================┛"
+	$(MKDIR_P) $(BUILD_DIR)
+	# This sets Release mode, and overrides the C flags for that mode to add -g
+	cmake -B $(BUILD_DIR) -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="-O3 -g"
 	cmake --build $(BUILD_DIR)
 	@echo "✓ Build complete: $(BUILD_DIR)/src/parser/parser"
 
@@ -154,20 +173,6 @@ test_sanitizer: build_sanitizer generate_test_data
 		fi; \
 	done
 	@echo "✓ All sanitizer tests passed"
-
-.PHONY: test_perf
-test_perf: build_release generate_test_data
-	@echo "┏=========================================┓"
-	@echo "┃      PERFORMANCE ANALYSIS (perf)        ┃"
-	@echo "┗=========================================┛"
-	@if command -v perf >/dev/null 2>&1; then \
-		for testfile in $(TEST_DATA_DIR)/test_*.conf; do \
-			echo "Performance test: $$testfile"; \
-			$(PERF) $(PERF_OPTS) $(BUILD_DIR)/src/parser/parser $$testfile; \
-		done; \
-	else \
-		echo "⚠ perf not installed. Install with: sudo apt install linux-tools-common"; \
-	fi
 
 .PHONY: test_static
 test_static: test_cppcheck
@@ -277,7 +282,7 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(BIN_DIR)
 	@rm -f valgrind-out.txt helgrind-out.txt
-	@rm -f perf.data perf.data.old
+	@rm -f perf-*.data perf-*.folded perf-*.svg perf.data perf.data.old
 	@echo "✓ Clean complete"
 
 .PHONY: distclean
@@ -293,11 +298,12 @@ help:
 	@echo "  make all              - Clean, format, build and test"
 	@echo "  make build            - Build debug version"
 	@echo "  make build_release    - Build release version"
+	@echo "  make build_perf       - Build for performance analysis (Release + debug symbols)"
 	@echo "  make test             - Run all tests"
 	@echo "  make test_valgrind    - Memory leak detection"
 	@echo "  make test_helgrind    - Data race detection"
 	@echo "  make test_sanitizer   - Address sanitizer"
-	@echo "  make test_perf        - Performance analysis"
+	@echo "  make test_perf        - Performance analysis (generates flame graphs)"
 	@echo "  make format           - Format source code"
 	@echo "  make install          - Install binary"
 	@echo "  make install_libs     - Install libraries"

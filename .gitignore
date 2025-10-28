@@ -2,3 +2,5 @@ build/
 cmake-build-debug/
 ./.idea/
 .idea/
+src/parser/test_data
+benchmark_results/

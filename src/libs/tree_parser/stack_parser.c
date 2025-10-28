@@ -1,10 +1,11 @@
 //
 // Created by pinkod on 10/24/25.
 //
-#include "include/parser.h"
+#include "include/stack_parser.h"
 
 #include "../../include/macro.h"
 #include "../stack/include/stack.h"
+#include "include/parsers_common.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -25,10 +26,7 @@ struct node {
     struct node* child;
 };
 
-struct parser {
-    const char* input;
-    int pos;
-};
+
 
 // private functions declaration
 static char* parse_name(struct parser* p);
@@ -36,12 +34,6 @@ static char* parse_quoted_value(struct parser* p, const char quote);
 static char* parse_unquoted_value(struct parser* p);
 static char* parse_value(struct parser* p);
 static struct attr* parse_attribute(struct parser* p);
-
-// some helpers for more clear code
-static void skip_whitespace(struct parser* p);
-static char current_char(struct parser* p);
-static int is_eof(struct parser* p);
-static char* strdup_range(const char* start, const char* end);
 
 
 // public functions definition
@@ -318,22 +310,7 @@ void free_root_node(node_t root) {
 
 
 // private functions definition
-static void skip_whitespace(struct parser* p) {
-    while(p->input[p->pos] && isspace((unsigned char) p->input[p->pos])) { p->pos++; }
-}
 
-static char current_char(struct parser* p) { return p->input[p->pos]; }
-
-static int is_eof(struct parser* p) { return p->input[p->pos] == '\0'; }
-
-static char* strdup_range(const char* start, const char* end) {
-    const size_t len = end - start;
-    char* result = malloc(len + 1);
-    if(INVERT_BOOL(result)) return NULL;
-    memcpy(result, start, len);
-    result[len] = '\0';
-    return result;
-}
 
 static char* parse_name(struct parser* p) {
     skip_whitespace(p);

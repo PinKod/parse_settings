@@ -17,7 +17,7 @@ target_include_directories(parser
 
 target_link_libraries(parser
         PRIVATE
-        tree_parser
+        tree_parser_stack
         tree_stack
 )
 

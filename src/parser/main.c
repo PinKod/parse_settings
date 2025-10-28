@@ -2,7 +2,7 @@
 // Created by pinkod on 10/24/25.
 //
 #include "../include/macro.h"
-#include "../libs/tree_parser/include/parser.h"
+#include "../libs/tree_parser/include/stack_parser.h"
 
 #include <stdio.h>
 #include <stdlib.h>
